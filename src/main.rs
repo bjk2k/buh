@@ -73,11 +73,12 @@ fn install_neovim_dependencies(base_directory: &PathBuf, custom_neovim_config_di
     let path_to_configuration = custom_neovim_config_dir.join("vscode").join("nvim");
 
     // trigger install script
-    println!("    |- Triggering install script for neovim dependencies");
+    println!("    |- Triggering install script for neovim dependencies @ {}", custom_neovim_config_dir.join("setup.sh").display());
     let mut cmd = std::process::Command::new("bash");
     cmd.arg(custom_neovim_config_dir.join("setup.sh"))
         .arg(base_directory);
-    println!("    |- >> {}", cmd.output().unwrap().status);
+    let output = cmd.output().expect("failed to execute setup.sh for configurations-neovim.");
+    println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 
     // link neovim configuration
     println!("    |- Linking neovim configuration");
@@ -87,6 +88,8 @@ fn install_neovim_dependencies(base_directory: &PathBuf, custom_neovim_config_di
             .join(".config")
             .join("nvim"),
     );
+    let output = cmd.output().expect("failed to link custom neovim configuration.");
+    println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 }
 
 fn install_neovim(base_directory: &PathBuf) {
