@@ -9,6 +9,7 @@ use strum_macros::{Display, EnumIter}; // 0.17.1
 use git2::Repository; // 0.13.7
 
 const NEOVIM_CONFIGURATION_REPO_URL: &str = "https://gitlab.com/bjk2k/configurations-neovim.git";
+const TMUX_CONFIGURATION_REPO_URL: &str = "https://gitlab.com/bjk2k/configurations-tmux.git";
 const PUBLIC_KEYS_REPO_URL: &str = "";
 
 // function to check if path is directory and writable
@@ -57,6 +58,8 @@ enum Feature {
     NeoVIM,
     #[clap(name = "pubkeys")]
     PublicKeys,
+    #[clap(name = "tmux")]
+    TMUX,
 }
 
 impl Feature {
@@ -64,6 +67,7 @@ impl Feature {
         match self {
             Feature::NeoVIM => install_neovim(directory),
             Feature::PublicKeys => install_public_keys(directory),
+            Feature::TMUX => install_tmux(directory),
         }
     }
 }
@@ -108,6 +112,30 @@ fn install_neovim(base_directory: &PathBuf) {
 
     // install dependencies
     install_neovim_dependencies(base_directory, &neovim_config_dir);
+}
+
+fn install_tmux(base_directory: &PathBuf) {
+    let tmux_config_dir = base_directory.join("configurations-tmux");
+    println!(
+        " |- Downloading tmux configuration into <{}>",
+        tmux_config_dir.display()
+    );
+
+    // clone configuration repository
+    let _repo = match Repository::clone(TMUX_CONFIGURATION_REPO_URL, &tmux_config_dir) {
+        Ok(repo) => repo,
+        Err(e) => panic!("failed to clone: {}", e),
+    };
+
+    println!("    |- Linking neovim configuration");
+    let mut cmd = std::process::Command::new("ln");
+    cmd.arg("-s").arg(tmux_config_dir).arg(
+        std::path::Path::new(&std::env::var("HOME").unwrap())
+            .join(".config")
+            .join("nvim"),
+    );
+    let output = cmd.output().expect("failed to link custom neovim configuration.");
+    println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 }
 
 fn install_public_keys(base_directory: &PathBuf) {
