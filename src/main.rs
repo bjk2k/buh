@@ -172,10 +172,8 @@ fn install_zsh(base_directory: &PathBuf) {
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 
     // remove install.sh if exists
-
     if std::path::Path::new("install.sh").exists() {
         std::fs::remove_file("install.sh").expect("failed to remove install.sh not present anymore!");
-            
     }
 }
 
