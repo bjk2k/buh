@@ -157,7 +157,7 @@ fn install_public_keys(base_directory: &PathBuf) {
 
 fn install_zsh(base_directory: &PathBuf) {
     let oh_my_zsh_dir = base_directory.join("oh-my-zsh");
-    let _zsh_dotfile_dir = base_directory.join("zsh-dotfiles");
+    let zsh_dotfile_dir = base_directory.join("zsh-dotfiles");
    
     let mut cmd = std::process::Command::new("wget");
     cmd.arg("https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh");
@@ -166,7 +166,7 @@ fn install_zsh(base_directory: &PathBuf) {
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 
     let mut cmd = std::process::Command::new("sh");
-    cmd.env("ZSH", oh_my_zsh_dir).arg("install.sh").arg("--unattended");
+    cmd.env("ZSH", oh_my_zsh_dir).env("ZDOTDIR", zsh_dotfile_dir).arg("install.sh").arg("--unattended");
 
     let output = cmd.output().expect("failed to install oh-my-zsh via install script.");
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
