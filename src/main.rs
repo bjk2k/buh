@@ -182,6 +182,8 @@ fn install_zsh(base_directory: &PathBuf) {
         std::path::Path::new(&std::env::var("HOME").unwrap())
             .join(".zshrc"),
     );
+    let output = cmd.output().expect("failed to link custom zsh configuration.");
+    println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 }
 
 fn install(directory: &String, features: &Vec<Feature>) {
