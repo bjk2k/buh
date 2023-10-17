@@ -191,6 +191,7 @@ fn install_zsh(base_directory: &PathBuf) {
     let mut cmd = std::process::Command::new("echo");
     let path_to_custom_zshrc = zsh_dotfile_dir.join(".zshrc");
     cmd.arg(format!("'source {}''", path_to_custom_zshrc.display())).arg(">>").arg(path_to_home_zshrc);
+    let output = cmd.output().expect("failed to append source cmd to .zshrc");
         
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 }
