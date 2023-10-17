@@ -176,13 +176,22 @@ fn install_zsh(base_directory: &PathBuf) {
     }
 
     let zsh_dotfile_dir = base_directory.join("zsh");
-    // link zsh configurations
-    let mut cmd = std::process::Command::new("ln");
-    cmd.arg("-s").arg(zsh_dotfile_dir.join(".zshrc")).arg(
-        std::path::Path::new(&std::env::var("HOME").unwrap())
-            .join(".zshrc"),
-    );
-    let output = cmd.output().expect("failed to link custom zsh configuration.");
+    let path_to_home_zshrc = std::path::Path::new(&std::env::var("HOME").unwrap()).join(".zshrc");
+    // ensure that ~/.zshrc exists and is a file
+
+    if !path_to_home_zshrc.exists()
+    {
+        
+        std::fs::File::create(path_to_home_zshrc.clone())
+            .expect("failed to create .zshrc file");
+    }
+
+    // append source cmd to ~/.zshrc
+  
+    let mut cmd = std::process::Command::new("echo");
+    let path_to_custom_zshrc = zsh_dotfile_dir.join(".zshrc");
+    cmd.arg(format!("'source {}''", path_to_custom_zshrc.display())).arg(">>").arg(path_to_home_zshrc);
+        
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 }
 
