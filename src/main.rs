@@ -157,16 +157,8 @@ fn install_public_keys(base_directory: &PathBuf) {
 
 fn install_zsh(base_directory: &PathBuf) {
     let oh_my_zsh_dir = base_directory.join("oh-my-zsh");
-    let zsh_dotfile_dir = base_directory.join("zsh-dotfiles");
-
-    // create directories if not present
-    if !oh_my_zsh_dir.exists() {
-        std::fs::create_dir(&oh_my_zsh_dir).expect("failed to create oh-my-zsh directory.");
-    }
-    if !zsh_dotfile_dir.exists() {
-        std::fs::create_dir(&zsh_dotfile_dir).expect("failed to create oh-my-zsh directory.");
-    }
-    
+    let _zsh_dotfile_dir = base_directory.join("zsh-dotfiles");
+   
     let mut cmd = std::process::Command::new("wget");
     cmd.arg("https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh");
 
