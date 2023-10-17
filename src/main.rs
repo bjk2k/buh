@@ -156,8 +156,7 @@ fn install_public_keys(base_directory: &PathBuf) {
 }
 
 fn install_zsh(base_directory: &PathBuf) {
-    let oh_my_zsh_dir = base_directory.join("oh-my-zsh");
-    let zsh_dotfile_dir = base_directory.join("zsh-dotfiles");
+    let zsh_dotfile_dir = base_directory.join("zsh");
    
     let mut cmd = std::process::Command::new("wget");
     cmd.arg("https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh");
@@ -166,7 +165,7 @@ fn install_zsh(base_directory: &PathBuf) {
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 
     let mut cmd = std::process::Command::new("sh");
-    cmd.env("ZSH", oh_my_zsh_dir).env("ZDOTDIR", zsh_dotfile_dir).arg("install.sh").arg("--unattended");
+    cmd.env("ZDOTDIR", zsh_dotfile_dir).arg("install.sh").arg("--unattended");
 
     let output = cmd.output().expect("failed to install oh-my-zsh via install script.");
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
@@ -175,6 +174,14 @@ fn install_zsh(base_directory: &PathBuf) {
     if std::path::Path::new("install.sh").exists() {
         std::fs::remove_file("install.sh").expect("failed to remove install.sh not present anymore!");
     }
+
+    let zsh_dotfile_dir = base_directory.join("zsh");
+    // link zsh configurations
+    let mut cmd = std::process::Command::new("ln");
+    cmd.arg("-s").arg(zsh_dotfile_dir.join(".zshrc")).arg(
+        std::path::Path::new(&std::env::var("HOME").unwrap())
+            .join(".zshrc"),
+    );
 }
 
 fn install(directory: &String, features: &Vec<Feature>) {
