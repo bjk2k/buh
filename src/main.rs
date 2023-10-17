@@ -54,6 +54,8 @@ enum Commands {
 
 #[derive(clap::ValueEnum, Clone, Debug, Enum, EnumIter, Display)]
 enum Feature {
+    #[clap(name = "zsh")]
+    ZSH,
     #[clap(name = "neovim")]
     NeoVIM,
     #[clap(name = "pubkeys")]
@@ -65,6 +67,7 @@ enum Feature {
 impl Feature {
     fn install(&self, directory: &PathBuf) {
         match self {
+            Feature::ZSH => install_zsh(directory),
             Feature::NeoVIM => install_neovim(directory),
             Feature::PublicKeys => install_public_keys(directory),
             Feature::TMUX => install_tmux(directory),
@@ -150,6 +153,38 @@ fn install_public_keys(base_directory: &PathBuf) {
         Ok(repo) => repo,
         Err(e) => panic!("failed to clone: {}", e),
     };
+}
+
+fn install_zsh(base_directory: &PathBuf) {
+    let oh_my_zsh_dir = base_directory.join("oh-my-zsh");
+    let zsh_dotfile_dir = base_directory.join("zsh-dotfiles");
+
+    // create directories if not present
+    if !oh_my_zsh_dir.exists() {
+        std::fs::create_dir(&oh_my_zsh_dir).expect("failed to create oh-my-zsh directory.");
+    }
+    if !zsh_dotfile_dir.exists() {
+        std::fs::create_dir(&zsh_dotfile_dir).expect("failed to create oh-my-zsh directory.");
+    }
+    
+    let mut cmd = std::process::Command::new("wget");
+    cmd.arg("https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh");
+
+    let output = cmd.output().expect("failed to download oh-my-zsh install script.");
+    println!("    |- {}", String::from_utf8_lossy(&output.stdout));
+
+    let mut cmd = std::process::Command::new("sh");
+    cmd.env("ZSH", oh_my_zsh_dir).arg("install.sh").arg("--unattended");
+
+    let output = cmd.output().expect("failed to install oh-my-zsh via install script.");
+    println!("    |- {}", String::from_utf8_lossy(&output.stdout));
+
+    // remove install.sh if exists
+
+    if std::path::Path::new("install.sh").exists() {
+        std::fs::remove_file("install.sh").expect("failed to remove install.sh not present anymore!");
+            
+    }
 }
 
 fn install(directory: &String, features: &Vec<Feature>) {
