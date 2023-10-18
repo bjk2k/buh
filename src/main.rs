@@ -187,6 +187,7 @@ fn setup_dotfiles(base_directory: &PathBuf, dotfiles_directory: &PathBuf) {
 
     // trigger install script
     let mut cmd = std::process::Command::new("bash");
+    cmd.current_dir(dotfiles_directory);
     cmd.arg(dotfiles_directory.join("install.sh"));
     
     println!("    |- Triggering install script for dotfiles @ {}", dotfiles_directory.join("install.sh").display());
