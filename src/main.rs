@@ -222,6 +222,7 @@ fn install_zsh(_base_directory: &PathBuf, dotfiles_directory: &PathBuf) {
     reset_dotfile_package(dotfiles_directory, &String::from("zsh"));
 }
 
+
 fn setup_dotfiles(base_directory: &PathBuf, dotfiles_directory: &PathBuf) {
  
     // clone dotfiles repository
@@ -246,7 +247,18 @@ fn setup_dotfiles(base_directory: &PathBuf, dotfiles_directory: &PathBuf) {
         std::path::Path::new(&std::env::var("HOME").unwrap())
             .join(".red_panda_setup.sh")
             ).unwrap();
-    file.write_all(format!("export RED_PANDA_HOME={}\n", base_directory.display()).as_bytes()).expect("failed to write to ~/.red_panda_setup.sh");    // set env variable RED_PANDA_HOME to base directory
+    file.write_all(format!("export RED_PANDA_HOME={}\n", base_directory.display()).as_bytes()).expect("failed to write to ~/.red_panda_setup.sh");    
+    // set env variable RED_PANDA_HOME to base directory
+
+    // git restore all subdirectories in dotfiles repo -- stow packages
+    
+    for entry in std::fs::read_dir(dotfiles_directory).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.is_dir() {
+            reset_dotfile_package(dotfiles_directory, &path.file_name().unwrap().to_str().unwrap().to_string());
+        }
+    }
 }
 
 fn install(directory: &String, features: &Vec<Feature>) {
