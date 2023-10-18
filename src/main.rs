@@ -224,12 +224,31 @@ fn install_zsh(_base_directory: &PathBuf, dotfiles_directory: &PathBuf) {
 
 
 fn setup_dotfiles(base_directory: &PathBuf, dotfiles_directory: &PathBuf) {
- 
-    // clone dotfiles repository
-    let _repo = match Repository::clone(DOTFILES_REPO_URL, dotfiles_directory) {
-        Ok(repo) => repo,
-        Err(e) => panic!("failed to clone: {}", e),
+    
+    
+    // check if dotfiles directory exists and is repo if not clone it
+
+    let _repo = match Repository::open(dotfiles_directory) {
+        Ok(_repo) => {
+            println!("    |- Dotfiles directory present, removing directory and cloning again ...");
+            
+            // TODO: do proper pull instead of removing directory and cloning again
+            std::fs::remove_dir_all(dotfiles_directory).expect("failed to remove dotfiles directory");
+            
+            match Repository::clone(DOTFILES_REPO_URL, dotfiles_directory) {
+                Ok(repo) => repo,
+                Err(e) => panic!("failed to clone: {}", e),
+            }
+        },
+        Err(_) => {
+            println!("    |- Dotfiles directory not present, cloning");
+            match Repository::clone(DOTFILES_REPO_URL, dotfiles_directory) {
+                Ok(repo) => repo,
+                Err(e) => panic!("failed to clone: {}", e),
+            }
+        }
     };
+    
     println!("    |- Setting up dotfiles");
 
     // trigger install script
