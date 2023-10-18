@@ -156,24 +156,70 @@ fn install_public_keys(base_directory: &PathBuf, _dotfiles_directory: &PathBuf) 
     };
 }
 
-fn install_zsh(_base_directory: &PathBuf, _dotfiles_directory: &PathBuf) {
-   
+fn reset_dotfile_package(dotfiles_directory: &PathBuf, stow_package: &String) {
+    let subdirectory = dotfiles_directory.join(stow_package);
+    
+    // git resore -- directory
+
+    let mut cmd = std::process::Command::new("git");
+    cmd.arg("restore").arg("--").arg(subdirectory);
+
+    println!("    |- Restoring dotfile package {}", stow_package);
+    let output = cmd.output().expect("failed to restore dotfile package.");
+    println!("       {}", String::from_utf8_lossy(&output.stdout));
+    
+}
+
+fn install_zsh(_base_directory: &PathBuf, dotfiles_directory: &PathBuf) {
+  
+    //install oh-my-zsh (assumes zsh present)
+
+    println!(" |- First install zsh package (may ask for sudo)");
+    let mut cmd = std::process::Command::new("sudo");
+    cmd.arg("apt").arg("install").arg("zsh");
+
+    match cmd.status() {
+        Ok(_) => println!("    |- zsh installed"),
+        Err(_) => println!("    |- installation failed (maybe already installed?)"),
+    }
+
+    // check if zsh is installed
+    let mut cmd = std::process::Command::new("zsh");
+    cmd.status().expect("zsh not installed");
+    
     let mut cmd = std::process::Command::new("wget");
     cmd.arg("https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh");
 
     let output = cmd.output().expect("failed to download oh-my-zsh install script.");
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 
-    let mut cmd = std::process::Command::new("sh");
+    // run install script inside zsh
+
+    let mut cmd = std::process::Command::new("zsh");
     cmd.arg("install.sh");
 
     let output = cmd.output().expect("failed to install oh-my-zsh via install script.");
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 
-    // remove install.sh if exists
+    // Clean up - remove install.sh if exists
     if std::path::Path::new("install.sh").exists() {
         std::fs::remove_file("install.sh").expect("failed to remove install.sh not present anymore!");
     }
+    
+    // Clean up - back up new .zshrc
+    if std::path::Path::new(".zshrc").exists() {
+        std::fs::rename(".zshrc", ".zshrc.bak").expect("failed to back up .zshrc");
+    }
+
+    // Clean up - rename .zshrc.pre-oh-my-zsh to .zshrc
+    if std::path::Path::new(".zshrc.pre-oh-my-zsh").exists() {
+        std::fs::rename(".zshrc.pre-oh-my-zsh", ".zshrc").expect("failed to rename .zshrc.pre-oh-my-zsh to .zshrc");
+    } else {
+        println!("    |- .zshrc.pre-oh-my-zsh not present, skipping");
+        std::fs::rename(".zshrc.bak", ".zshrc").expect("failed to restore back up .zshrc");
+    }
+
+    reset_dotfile_package(dotfiles_directory, &String::from("zsh"));
 }
 
 fn setup_dotfiles(base_directory: &PathBuf, dotfiles_directory: &PathBuf) {
