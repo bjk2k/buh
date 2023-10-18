@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, io::Write};
 
 use clap::{Parser, Subcommand};
 use enum_map::Enum;
@@ -10,6 +10,7 @@ use git2::Repository; // 0.13.7
 
 const NEOVIM_CONFIGURATION_REPO_URL: &str = "https://gitlab.com/bjk2k/configurations-neovim.git";
 const TMUX_CONFIGURATION_REPO_URL: &str = "https://gitlab.com/bjk2k/configurations-tmux.git";
+const DOTFILES_REPO_URL: &str = "https://gitlab.com/bjk2k/dotfiles-red-panda.git";
 const PUBLIC_KEYS_REPO_URL: &str = "";
 
 // function to check if path is directory and writable
@@ -65,12 +66,12 @@ enum Feature {
 }
 
 impl Feature {
-    fn install(&self, directory: &PathBuf) {
+    fn install(&self, directory: &PathBuf, dotfiles_directory: &PathBuf) {
         match self {
-            Feature::ZSH => install_zsh(directory),
-            Feature::NeoVIM => install_neovim(directory),
-            Feature::PublicKeys => install_public_keys(directory),
-            Feature::TMUX => install_tmux(directory),
+            Feature::ZSH => install_zsh(directory, dotfiles_directory),
+            Feature::NeoVIM => install_neovim(directory, dotfiles_directory),
+            Feature::PublicKeys => install_public_keys(directory, dotfiles_directory),
+            Feature::TMUX => install_tmux(directory, dotfiles_directory),
         }
     }
 }
@@ -99,7 +100,7 @@ fn install_neovim_dependencies(base_directory: &PathBuf, custom_neovim_config_di
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 }
 
-fn install_neovim(base_directory: &PathBuf) {
+fn install_neovim(base_directory: &PathBuf, _dotfiles_directory: &PathBuf) {
     let neovim_config_dir = base_directory.join("configurations-neovim");
 
     println!(
@@ -117,7 +118,7 @@ fn install_neovim(base_directory: &PathBuf) {
     install_neovim_dependencies(base_directory, &neovim_config_dir);
 }
 
-fn install_tmux(base_directory: &PathBuf) {
+fn install_tmux(base_directory: &PathBuf, _dotfiles_directory: &PathBuf) {
     let tmux_config_dir = base_directory.join("configurations-tmux");
     println!(
         " |- Downloading tmux configuration into <{}>",
@@ -141,7 +142,7 @@ fn install_tmux(base_directory: &PathBuf) {
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 }
 
-fn install_public_keys(base_directory: &PathBuf) {
+fn install_public_keys(base_directory: &PathBuf, _dotfiles_directory: &PathBuf) {
     let neovim_config_dir = base_directory.join("public-keys");
 
     println!(
@@ -155,8 +156,7 @@ fn install_public_keys(base_directory: &PathBuf) {
     };
 }
 
-fn install_zsh(base_directory: &PathBuf) {
-    let zsh_dotfile_dir = base_directory.join("zsh");
+fn install_zsh(_base_directory: &PathBuf, _dotfiles_directory: &PathBuf) {
    
     let mut cmd = std::process::Command::new("wget");
     cmd.arg("https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh");
@@ -165,7 +165,7 @@ fn install_zsh(base_directory: &PathBuf) {
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
 
     let mut cmd = std::process::Command::new("sh");
-    cmd.env("ZDOTDIR", zsh_dotfile_dir).arg("install.sh").arg("--unattended");
+    cmd.arg("install.sh");
 
     let output = cmd.output().expect("failed to install oh-my-zsh via install script.");
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
@@ -174,38 +174,49 @@ fn install_zsh(base_directory: &PathBuf) {
     if std::path::Path::new("install.sh").exists() {
         std::fs::remove_file("install.sh").expect("failed to remove install.sh not present anymore!");
     }
+}
 
-    let zsh_dotfile_dir = base_directory.join("zsh");
-    let path_to_home_zshrc = std::path::Path::new(&std::env::var("HOME").unwrap()).join(".zshrc");
-    // ensure that ~/.zshrc exists and is a file
+fn setup_dotfiles(base_directory: &PathBuf, dotfiles_directory: &PathBuf) {
+ 
+    // clone dotfiles repository
+    let _repo = match Repository::clone(DOTFILES_REPO_URL, dotfiles_directory) {
+        Ok(repo) => repo,
+        Err(e) => panic!("failed to clone: {}", e),
+    };
+    println!("    |- Setting up dotfiles");
 
-    if !path_to_home_zshrc.exists()
-    {
-        
-        std::fs::File::create(path_to_home_zshrc.clone())
-            .expect("failed to create .zshrc file");
-    }
-
-    // append source cmd to ~/.zshrc
-  
-    let mut cmd = std::process::Command::new("echo");
-    let path_to_custom_zshrc = zsh_dotfile_dir.join(".zshrc");
-    cmd.arg(format!("'source {}''", path_to_custom_zshrc.display())).arg(">>").arg(path_to_home_zshrc);
-    let output = cmd.output().expect("failed to append source cmd to .zshrc");
-        
+    // trigger install script
+    let mut cmd = std::process::Command::new("bash");
+    cmd.arg(dotfiles_directory.join("install.sh"));
+    
+    println!("    |- Triggering install script for dotfiles @ {}", dotfiles_directory.join("install.sh").display());
+    let output = cmd.output().expect("failed to execute install.sh for dotfiles.");
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
+
+    // create or overide ~/.red_panda_setup.sh
+    
+    let mut file = std::fs::OpenOptions::new().write(true).truncate(true).open(
+        std::path::Path::new(&std::env::var("HOME").unwrap())
+            .join(".red_panda_setup.sh")
+            ).unwrap();
+    file.write_all(format!("export RED_PANDA_HOME={}\n", base_directory.display()).as_bytes()).expect("failed to write to ~/.red_panda_setup.sh");    // set env variable RED_PANDA_HOME to base directory
 }
 
 fn install(directory: &String, features: &Vec<Feature>) {
     // create installation repository
     let install_dir = std::path::Path::new(&directory).join("red-panda-hollow");
+    let dotfile_dir = std::path::Path::new(&directory).join(".red-panda-dotfiles");
+    
+    println!("[O] Setting up some red pandas dotfiles in the <{}> directory", dotfile_dir.display()); 
+    setup_dotfiles(&install_dir, &dotfile_dir);
+    
     println!(
         "[O] Inviting some red pandas into the <{}> directory",
         install_dir.display()
     );
     println!("[O] Installing features: {:?}", features);
     for feature in features {
-        feature.install(&install_dir);
+        feature.install(&install_dir, &dotfile_dir);
     }
 }
 
