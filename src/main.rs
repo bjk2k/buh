@@ -13,6 +13,40 @@ const TMUX_CONFIGURATION_REPO_URL: &str = "https://gitlab.com/bjk2k/configuratio
 const DOTFILES_REPO_URL: &str = "https://gitlab.com/bjk2k/dotfiles-red-panda.git";
 const PUBLIC_KEYS_REPO_URL: &str = "";
 
+const ASCII_HEADER: &str = "                             ███                             
+                      █      █           █                   
+                       ██    █  █       █                    
+                       █         ██████  █                   
+                                    █   █                    
+  ██    ███                             █          ██    ██  
+█           ██          █              █       ██            
+         ██    █        █              █     █     █         
+█     █████  █   ██   ███             █    █   █  █████     █
+    █    █████ █   ███████  █        █████   █ █████    █    
+        ██   ██  █ ███████████████████████ █  ██   ██        
+█              █ ███████████████████████████ █      █   █   █
+      █      █ ███████████████████████████████        █      
+██         ██████████████████████████████████████          ██
+█     ███████████████████████████████████████████████████   █
+█ █     █ █████████████████████████████████████████ █     █ █
+ █   █   ████████████████  ███████   ███████████████   ██  █ 
+   ██   ███████████████     ██████    ███████████████   ██   
+ ██    ██████████████████   ██████  ██████████████████    ██ 
+██ ██ ██████████████  ██ ███████████ ███  ████████████████ ██
+    ███████     ███ ██████ █     ██ ██████ ██     ███████    
+   ███████     █████ ████ █        █ ███  ████      ██████   
+     ████      █████████             ██████████     ████     
+     ████     ███████                    ██████     ████     
+      ███     █████  █     ████████     █ ██████    ████     
+     █████    █████       █████████  █     █████   █████     
+     ██████   █████        ████████       ███ █   ██████     
+     ██ █████  ██████         █          █████  █████ ██     
+       ████████  █████ ██  ██   ██  ███ ████  ████████       
+           ████████                        ███████           
+               █████████             █████████               
+                    █████████    ████████                    
+                                                        @bjk2k";
+                                                       
 // function to check if path is directory and writable
 fn path_validator(v: &str) -> Result<String, String> {
     if std::path::Path::new(v).is_dir() {
@@ -136,7 +170,7 @@ fn install_tmux(base_directory: &PathBuf, _dotfiles_directory: &PathBuf) {
     cmd.arg("-s").arg(tmux_config_dir).arg(
         std::path::Path::new(&std::env::var("HOME").unwrap())
             .join(".config")
-            .join("nvim"),
+            .join("tmux"),
     );
     let output = cmd.output().expect("failed to link custom neovim configuration.");
     println!("    |- {}", String::from_utf8_lossy(&output.stdout));
@@ -172,22 +206,7 @@ fn reset_dotfile_package(dotfiles_directory: &PathBuf, stow_package: &String) {
 
 fn install_zsh(_base_directory: &PathBuf, dotfiles_directory: &PathBuf) {
   
-    //install oh-my-zsh (assumes zsh present)
-
-    println!(" |- First install zsh package (may ask for sudo)");
-    let mut cmd = std::process::Command::new("sudo");
-    cmd.arg("apt").arg("install").arg("zsh");
-
-    match cmd.status() {
-        Ok(_) => println!("    |- zsh installed"),
-        Err(_) => println!("    |- installation failed (maybe already installed?)"),
-    }
-
-    // check if zsh is installed
-    let mut cmd = std::process::Command::new("zsh");
-    cmd.status().expect("zsh not installed");
-    
-    let mut cmd = std::process::Command::new("wget");
+   let mut cmd = std::process::Command::new("wget");
     cmd.arg("https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh");
 
     let output = cmd.output().expect("failed to download oh-my-zsh install script.");
@@ -222,9 +241,7 @@ fn install_zsh(_base_directory: &PathBuf, dotfiles_directory: &PathBuf) {
     reset_dotfile_package(dotfiles_directory, &String::from("zsh"));
 }
 
-
 fn setup_dotfiles(base_directory: &PathBuf, dotfiles_directory: &PathBuf) {
-    
     
     // check if dotfiles directory exists and is repo if not clone it
 
@@ -305,8 +322,42 @@ fn list() {
     }
 }
 
+// function to check if all dependencies are met
+fn check_dependencies() -> Result<(), &'static str> {
+    let mut cmd = std::process::Command::new("stow");
+    cmd.arg("--version");
+
+    if cmd.status().is_err() {
+        return Err("Stow is not installed and can not be installed! Install it!");
+    }
+
+    let mut cmd = std::process::Command::new("zsh");
+    cmd.arg("--version");
+
+    if cmd.status().is_err() {
+        return Err("ZSH is not installed and can not be installed! Install it!");
+    }
+
+    let mut cmd = std::process::Command::new("wget");
+    cmd.arg("--version");
+
+    if cmd.status().is_err() {
+        return Err("wget is not installed and can not be installed! Install it!");
+    }
+
+    Ok(())
+}
+
 fn main() {
+    
+    println!("{}", ASCII_HEADER);
     let args = Args::parse();
+    
+    match check_dependencies() {
+        Ok(_) => println!("[O] \n |- dependencies ✔"),
+        Err(e) => panic!("failed to check dependencies: {}", e),
+    }
+    
     match args.subcmd {
         Commands::Install {
             directory,
