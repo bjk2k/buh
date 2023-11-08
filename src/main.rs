@@ -97,6 +97,8 @@ enum Feature {
     PublicKeys,
     #[clap(name = "tmux")]
     TMUX,
+    #[clap(name = "secretkeys")]
+    SecretKeys,
 }
 
 impl Feature {
@@ -106,13 +108,18 @@ impl Feature {
             Feature::NeoVIM => install_neovim(directory, dotfiles_directory),
             Feature::PublicKeys => install_public_keys(directory, dotfiles_directory),
             Feature::TMUX => install_tmux(directory, dotfiles_directory),
+            Feature::SecretKeys => install_secretkeys(directory, dotfiles_directory),
         }
     }
 }
 
+fn install_secretkeys(_base_directory: &PathBuf, _dotfiles_directory: &PathBuf) {
+    panic!("Secret keys not implemented yet!");
+}
+
 fn install_neovim_dependencies(base_directory: &PathBuf, custom_neovim_config_dir: &PathBuf) {
     // path to configurations-neovim >> vscode >> nvim
-    let path_to_configuration = custom_neovim_config_dir.join("vscode").join("nvim");
+    let path_to_configuration = custom_neovim_config_dir;
 
     // trigger install script
     println!("    |- Triggering install script for neovim dependencies @ {}", custom_neovim_config_dir.join("setup.sh").display());
